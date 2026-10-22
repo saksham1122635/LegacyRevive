@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LegacyRevive | The Code Hospital & Restoration Engine</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti for friendly celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857'
+            },
+            surface: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#080d1a'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, rgba(8, 13, 26, 1) 90%);
+      color: #f1f5f9;
+      min-height: 100vh;
+    }
+    .code-font { font-family: 'JetBrains Mono', monospace; }
+    .glass-panel {
+      background: rgba(17, 24, 39, 0.78);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-panel-glow {
+      box-shadow: 0 0 35px -8px rgba(16, 185, 129, 0.25);
+    }
+    .heartbeat-dot {
+      animation: heartPulse 1.6s infinite ease-in-out;
+    }
+    @keyframes heartPulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.35); opacity: 1; }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+  </style>
+</head>
+<body class="flex flex-col antialiased selection:bg-brand-500 selection:text-black">
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-28 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border text-sm font-medium"></div>
+
+  <!-- HEADER -->
+  <header class="border-b border-surface-800/80 bg-surface-950/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Metaphor -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-emerald-500 to-cyan-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-brand-500/25">
+          <i data-lucide="cross" class="w-5 h-5 text-slate-950"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base tracking-tight text-white">LegacyRevive</span>
+            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-400 border border-brand-500/30 font-bold">Code Clinic</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block" id="appSubtitle">Reviving dead code into clean, safe modern software</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher & Quick Tools -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        
+        <!-- Plain English vs Developer Toggle -->
+        <div class="bg-surface-900 border border-surface-800 p-1 rounded-xl flex items-center text-xs">
+          <button id="modeBtnBeginner" onclick="setMode('beginner')" class="px-2.5 sm:px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition bg-brand-500 text-slate-950 shadow">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Simple Mode</span>
+          </button>
+          <button id="modeBtnDev" onclick="setMode('engineer')" class="px-2.5 sm:px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-white">
+            <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Engineer</span><span>Mode</span>
+          </button>
+        </div>
+
+        <!-- Audio cue button -->
+        <button onclick="toggleAudio()" id="audioBtn" class="p-2 rounded-xl bg-surface-900 border border-surface-800 text-slate-400 hover:text-brand-400 transition" title="Toggle Sound Chimes">
+          <i data-lucide="volume-2" id="audioIcon" class="w-4 h-4"></i>
+        </button>
+
+        <!-- GitHub PR preview button -->
+        <button onclick="openPrModal()" class="px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-xl bg-surface-900 hover:bg-surface-800 border border-surface-800 text-white flex items-center gap-1.5 transition">
+          <i data-lucide="git-pull-request" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span class="hidden sm:inline">Review PR</span>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- HOSPITAL HERO / PATIENT INTAKE -->
+    <section class="glass-panel glass-panel-glow rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+      
+      <!-- Top Badges -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 heartbeat-dot"></span>
+            <span id="hospitalBadge">Code ICU • Restoration Station</span>
+          </span>
+          <span class="text-xs text-slate-400 hidden sm:inline" id="hospitalTagline">Resurrecting broken open-source projects</span>
+        </div>
+
+        <!-- Quick 90s Promise -->
+        <span class="text-xs font-mono text-cyan-400 bg-cyan-950/40 border border-cyan-800/50 px-3 py-0.5 rounded-full flex items-center gap-1">
+          <i data-lucide="zap" class="w-3 h-3"></i> Average turnaround: 90 Seconds
+        </span>
+      </div>
+
+      <!-- Hero Heading -->
+      <div class="max-w-2xl mb-6">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight" id="heroTitle">
+          Bring Old, Dead Projects Back to Life
+        </h1>
+        <p class="text-sm sm:text-base text-slate-300 mt-2 leading-relaxed" id="heroDesc">
+          Millions of great coding tools are abandoned because they stopped running on modern systems. 
+          LegacyRevive acts like an automated master mechanic: it tests the old code, replaces worn-out parts, and makes it purr like new!
+        </p>
+      </div>
+
+      <!-- 3 Curated 'Patient' Story Presets for Non-Tech Users -->
+      <div class="mb-4">
+        <div class="text-xs font-medium text-slate-400 mb-2 flex items-center gap-1.5">
+          <i data-lucide="folder-clock" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span>Pick an abandoned sample project to test:</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          
+          <button onclick="pickPatient('school')" id="presetSchool" class="patient-card text-left p-3.5 rounded-2xl bg-surface-900/90 hover:bg-surface-800 border-2 border-emerald-500/50 transition relative group">
+            <div class="flex items-center justify-between text-xs font-semibold text-white mb-1">
+              <span class="flex items-center gap-1.5">📚 School Grading App</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono">Dead 2016</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-tight">Student report cards app. Fails to run on modern computers; missing password safety.</p>
+          </button>
+
+          <button onclick="pickPatient('weather')" id="presetWeather" class="patient-card text-left p-3.5 rounded-2xl bg-surface-900/90 hover:bg-surface-800 border-2 border-surface-800 transition relative group">
+            <div class="flex items-center justify-between text-xs font-semibold text-white mb-1">
+              <span class="flex items-center gap-1.5">🌤️ City Weather Tool</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono">Dead 2018</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-tight">Simple weather scraper. Broke when old web links and old Python libraries shut down.</p>
+          </button>
+
+          <button onclick="pickPatient('shop')" id="presetShop" class="patient-card text-left p-3.5 rounded-2xl bg-surface-900/90 hover:bg-surface-800 border-2 border-surface-800 transition relative group">
+            <div class="flex items-center justify-between text-xs font-semibold text-white mb-1">
+              <span class="flex items-center gap-1.5">🛒 Mini Store Cart</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono">Dead 2017</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-tight">E-commerce payment logic. Contains obsolete encryption algorithms and zero test checks.</p>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Action Box & URL Input -->
+      <div class="p-2 sm:p-2.5 rounded-2xl bg-surface-950/80 border border-surface-800 flex flex-col sm:flex-row items-center gap-2">
+        <div class="relative w-full flex-1">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <i data-lucide="github" class="w-4 h-4"></i>
+          </div>
+          <input 
+            id="repoInput" 
+            type="text" 
+            value="https://github.com/dead-repos/school-grade-evaluator"
+            class="w-full pl-10 pr-4 py-2.5 bg-transparent border-0 text-white placeholder-slate-500 focus:outline-none text-xs sm:text-sm font-mono"
+            placeholder="Paste any abandoned GitHub repository link..."
+          />
+        </div>
+
+        <button 
+          id="reviveButton"
+          onclick="startRestoration()" 
+          class="w-full sm:w-auto px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold text-sm tracking-wide flex items-center justify-center gap-2 shadow-xl shadow-brand-500/20 active:scale-95 transition"
+        >
+          <i data-lucide="activity" class="w-4 h-4"></i>
+          <span id="reviveBtnText">Revive This Project Now</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- HEALTH METER & QUICK VITALS -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      
+      <!-- Patient Condition Gauge -->
+      <div class="glass-panel rounded-2xl p-5 md:col-span-2 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div class="text-xs uppercase font-mono font-bold text-slate-400" id="healthCardTitle">Patient Vitality Score</div>
+            <div class="text-lg font-bold text-white flex items-center gap-2 mt-0.5">
+              <span id="healthConditionLabel" class="text-rose-400">Condition: Critical</span>
+              <span id="healthSubtext" class="text-xs text-slate-400 font-normal">(Needs Total Restoration)</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span id="healthPercentNumber" class="text-3xl font-black font-mono text-rose-400">24%</span>
+            <span class="text-xs text-slate-400 block">Health</span>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-surface-900 rounded-full h-3 p-0.5 border border-surface-800 overflow-hidden">
+          <div id="healthFillBar" class="bg-gradient-to-r from-rose-500 to-amber-500 h-full rounded-full transition-all duration-700 ease-out" style="width: 24%"></div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-400 mt-2 font-mono">
+          <span>Broken & Vulnerable (24%)</span>
+          <span class="text-brand-400">Target: 100% Certified Safe</span>
+        </div>
+      </div>
+
+      <!-- Vitals: Vulnerabilities / Wear & Tear -->
+      <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono text-slate-400" id="stat1Label">Security Holes (CVEs)</span>
+          <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+            <i data-lucide="shield-alert" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="my-2">
+          <div class="text-2xl font-bold text-rose-400" id="stat1Value">14 Holes</div>
+          <p class="text-xs text-slate-400 mt-0.5" id="stat1Desc">Like leaving front door keys under the mat.</p>
+        </div>
+        <div class="text-[11px] font-mono text-slate-500" id="stat1Footnote">Fix target: 0 Vulnerabilities</div>
+      </div>
+
+      <!-- Vitals: Automated Safety Tests -->
+      <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono text-slate-400" id="stat2Label">Safety Check Tests</span>
+          <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+            <i data-lucide="wrench" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="my-2">
+          <div class="text-2xl font-bold text-amber-400" id="stat2Value">0 Tests</div>
+          <p class="text-xs text-slate-400 mt-0.5" id="stat2Desc">Never checked if it can crash or fail.</p>
+        </div>
+        <div class="text-[11px] font-mono text-slate-500" id="stat2Footnote">Fix target: 100% Green Suite</div>
+      </div>
+
+    </section>
+
+    <!-- THE 3-STEP RESTORATION WORKSHOP PIPELINE -->
+    <section class="glass-panel rounded-3xl p-6 sm:p-7">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
+        <div>
+          <span class="text-xs font-mono text-brand-400 uppercase tracking-wider font-bold">The 3-Step Journey</span>
+          <h2 class="text-lg sm:text-xl font-bold text-white mt-0.5" id="pipelineHeading">How We Resurrect Broken Code</h2>
+        </div>
+        <span class="text-xs text-slate-400 bg-surface-900 border border-surface-800 px-3 py-1 rounded-full">
+          Autonomous • No Human Triage Needed
+        </span>
+      </div>
+
+      <!-- 3 Stage Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Phase 1 -->
+        <div id="pipeCard1" class="p-5 rounded-2xl bg-surface-900/60 border border-surface-800 transition-all duration-300">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-bold">PHASE 01</span>
+            <div id="pipeIcon1" class="w-8 h-8 rounded-xl bg-surface-800 text-slate-400 flex items-center justify-center">
+              <i data-lucide="stethoscope" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <h3 class="font-bold text-white text-sm" id="step1Title">Doctor Checkup</h3>
+          <p class="text-xs text-slate-400 mt-1.5 leading-relaxed" id="step1Desc">
+            We scan every line of code to spot obsolete 2016 commands, dead links, and insecure locks.
+          </p>
+          <div class="mt-4 pt-3 border-t border-surface-800/80 flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-500">Status:</span>
+            <span id="step1Status" class="text-slate-400">Ready</span>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div id="pipeCard2" class="p-5 rounded-2xl bg-surface-900/60 border border-surface-800 transition-all duration-300">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-bold">PHASE 02</span>
+            <div id="pipeIcon2" class="w-8 h-8 rounded-xl bg-surface-800 text-slate-400 flex items-center justify-center">
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <h3 class="font-bold text-white text-sm" id="step2Title">Surgeon Refactor</h3>
+          <p class="text-xs text-slate-400 mt-1.5 leading-relaxed" id="step2Desc">
+            Our AI swaps rusty old code with brand-new, modern 2026 code, plugs security holes, and writes automated tests.
+          </p>
+          <div class="mt-4 pt-3 border-t border-surface-800/80 flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-500">Status:</span>
+            <span id="step2Status" class="text-slate-400">Waiting</span>
+          </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div id="pipeCard3" class="p-5 rounded-2xl bg-surface-900/60 border border-surface-800 transition-all duration-300">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-bold">PHASE 03</span>
+            <div id="pipeIcon3" class="w-8 h-8 rounded-xl bg-surface-800 text-slate-400 flex items-center justify-center">
+              <i data-lucide="check-check" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <h3 class="font-bold text-white text-sm" id="step3Title">Safe Test Drive</h3>
+          <p class="text-xs text-slate-400 mt-1.5 leading-relaxed" id="step3Desc">
+            We spin up an isolated virtual testing garage. If every test passes, you get a clean 100% green bill of health!
+          </p>
+          <div class="mt-4 pt-3 border-t border-surface-800/80 flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-500">Status:</span>
+            <span id="step3Status" class="text-slate-400">Waiting</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RESULTS WORKSPACE: BEFORE VS AFTER VISUAL INSPECTION -->
+    <section class="glass-panel rounded-3xl overflow-hidden border border-surface-800 shadow-2xl">
+      
+      <!-- Top Inspector Bar -->
+      <div class="p-4 sm:p-5 border-b border-surface-800 flex flex-wrap items-center justify-between gap-3 bg-surface-900/50">
+        <div>
+          <span class="text-xs font-mono text-brand-400 font-bold" id="inspectorHeaderBadge">Transformation Breakdown</span>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span id="inspectorTitle">What Changed Inside This Code?</span>
+          </h3>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex items-center gap-1.5 p-1 rounded-xl bg-surface-950 border border-surface-800 text-xs">
+          <button id="tabSimpDiff" onclick="selectView('sideBySide')" class="px-3 py-1.5 rounded-lg bg-surface-800 text-brand-400 font-bold transition">
+            <span id="tab1Text">Before vs After</span>
+          </button>
+          <button id="tabFixList" onclick="selectView('fixes')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            <span id="tab2Text">Fixes Explained</span>
+          </button>
+          <button id="tabTestView" onclick="selectView('tests')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            <span id="tab3Text">Auto Tests (3)</span>
+          </button>
+          <button id="tabTerminal" onclick="selectView('terminal')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            <span id="tab4Text">Test Garage Log</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab View 1: Side by Side (Clean Diff) -->
+      <div id="viewSideBySide" class="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <!-- Left: Broken Code -->
+        <div class="rounded-2xl bg-rose-950/20 border border-rose-900/40 p-4 sm:p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-rose-900/30 mb-3">
+              <span class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                <span id="diffBeforeTitle">Old Code (Dead Since 2016)</span>
+              </span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono font-semibold">Broken & Risky</span>
+            </div>
+
+            <!-- Plain English Callout -->
+            <div class="p-3 rounded-xl bg-rose-950/40 border border-rose-800/40 text-xs text-rose-200 mb-3 leading-relaxed" id="diffBeforeCallout">
+              ⚠️ <strong>Why this was broken:</strong> Used old 2010 Python commands that modern computers refuse to read, and stored sensitive tokens with broken encryption.
+            </div>
+
+            <pre class="code-font text-xs text-slate-300 leading-relaxed overflow-x-auto whitespace-pre bg-surface-950/70 p-3.5 rounded-xl border border-surface-800" id="codeBeforeRaw">
+<span class="text-rose-400 bg-rose-950/70 block">- import urllib2          # DEAD: Removed in modern Python</span>
+<span class="text-rose-400 bg-rose-950/70 block">- import md5              # INSECURE: Can be cracked in 2 secs</span>
+
+<span class="text-rose-400 bg-rose-950/70 block">- def calculate_grade(name, marks):</span>
+<span class="text-rose-400 bg-rose-950/70 block">-     print "Calculating report for: " + name   # Crash!</span>
+<span class="text-rose-400 bg-rose-950/70 block">-     key = md5.new(name).hexdigest()</span>
+<span class="text-rose-400 bg-rose-950/70 block">-     return {"student": name, "token": key}</span></pre>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-rose-900/20 text-[11px] text-rose-300/80 flex items-center gap-1.5">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            <span>Contains 14 critical vulnerabilities & syntax errors</span>
+          </div>
+        </div>
+
+        <!-- Right: Revived Modern Code -->
+        <div class="rounded-2xl bg-brand-500/10 border border-brand-500/30 p-4 sm:p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-brand-500/30 mb-3">
+              <span class="text-xs font-bold text-brand-400 flex items-center gap-1.5">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                <span id="diffAfterTitle">Modern Code (Python 3.12 LTS)</span>
+              </span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-mono font-bold">100% Certified Clean</span>
+            </div>
+
+            <!-- Plain English Callout -->
+            <div class="p-3 rounded-xl bg-brand-500/15 border border-brand-500/30 text-xs text-emerald-200 mb-3 leading-relaxed" id="diffAfterCallout">
+              ✅ <strong>What got upgraded:</strong> Clean modern syntax, bank-grade SHA256 security hashing, and strict type protections so bugs cannot slip through.
+            </div>
+
+            <pre class="code-font text-xs text-slate-200 leading-relaxed overflow-x-auto whitespace-pre bg-surface-950/70 p-3.5 rounded-xl border border-surface-800" id="codeAfterRaw">
+<span class="text-emerald-400 bg-emerald-950/60 block">+ import hashlib          # SECURE: Modern cryptographic grade</span>
+<span class="text-emerald-400 bg-emerald-950/60 block">+ from typing import Dict, Any</span>
+<span class="text-emerald-400 bg-emerald-950/60 block">+ import logging</span>
+
+<span class="text-emerald-400 bg-emerald-950/60 block">+ def calculate_grade(name: str, marks: float) -> Dict[str, Any]:</span>
+<span class="text-emerald-400 bg-emerald-950/60 block">+     logging.info(f"Verified report for: {name}")</span>
+<span class="text-emerald-400 bg-emerald-950/60 block">+     token = hashlib.sha256(name.encode("utf-8")).hexdigest()</span>
+<span class="text-emerald-400 bg-emerald-950/60 block">+     return {"student": name, "token": token, "verified": True}</span></pre>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-brand-500/20 text-[11px] text-emerald-300 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 0 Vulnerabilities • Tested Safe
+            </span>
+            <button onclick="copyCleanCode()" class="text-brand-400 hover:text-white font-semibold flex items-center gap-1 transition">
+              <i data-lucide="copy" class="w-3 h-3"></i> <span id="copyBtnTxt">Copy Code</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tab View 2: Fixes Explained in Plain English -->
+      <div id="viewFixes" class="p-6 hidden space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <div class="p-4 rounded-2xl bg-surface-900 border border-surface-800">
+            <div class="w-9 h-9 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center mb-3">
+              <i data-lucide="shield" class="w-5 h-5"></i>
+            </div>
+            <h4 class="font-bold text-white text-sm mb-1">Old Locks Replaced</h4>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Old algorithms like <code>MD5</code> allow bad actors to forge fake data. We replaced it with <code>SHA-256</code>, the same math used by modern banking apps.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-surface-900 border border-surface-800">
+            <div class="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3">
+              <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+            </div>
+            <h4 class="font-bold text-white text-sm mb-1">Language Upgraded</h4>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Python 2 stopped receiving support in 2020. We translated obsolete phrases like <code>print "text"</code> into modern <code>print("text")</code>.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-surface-900 border border-surface-800">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3">
+              <i data-lucide="file-check-2" class="w-5 h-5"></i>
+            </div>
+            <h4 class="font-bold text-white text-sm mb-1">Safety Guardrails Added</h4>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              We added 3 automated test routines that verify every calculation before the code runs in production.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tab View 3: Auto-Generated Tests -->
+      <div id="viewTests" class="p-6 hidden space-y-3">
+        <div class="text-xs text-slate-300 flex items-center justify-between">
+          <span class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-brand-400"></i> Auto-Generated Test Suite (pytest)</span>
+          <span class="font-mono text-brand-400 text-[11px]">3 Tests • 100% Passing</span>
+        </div>
+        <pre class="code-font text-xs text-slate-200 bg-surface-950 p-4 rounded-2xl border border-surface-800 overflow-x-auto whitespace-pre">
+import pytest
+from modern_module import calculate_grade
+
+def test_student_report_success():
+    """Verify standard student grade calculation works cleanly."""
+    res = calculate_grade("Alice Smith", 94.5)
+    assert res["student"] == "Alice Smith"
+    assert res["verified"] is True
+    assert len(res["token"]) == 64  # Confirms SHA-256 token length
+
+def test_empty_student_handling():
+    """Confirms empty names do not cause crashes."""
+    res = calculate_grade("", 0.0)
+    assert res["verified"] is True
+
+def test_security_hash_tamper_proofing():
+    """Ensures token is cryptographically sound."""
+    res1 = calculate_grade("StudentA", 80)
+    res2 = calculate_grade("StudentB", 80)
+    assert res1["token"] != res2["token"]
+        </pre>
+      </div>
+
+      <!-- Tab View 4: Test Garage Console (Simplified vs Raw) -->
+      <div id="viewTerminal" class="p-6 hidden">
+        <div class="flex items-center justify-between mb-2 text-xs font-mono">
+          <span class="text-slate-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-brand-400"></span>
+            <span id="garageStatusTitle">Virtual Test Garage Status</span>
+          </span>
+          <span class="text-slate-500">Container: Python 3.12 LTS</span>
+        </div>
+        <div id="terminalBody" class="code-font text-xs text-slate-300 bg-surface-950 p-4 rounded-2xl border border-surface-800 h-52 overflow-y-auto space-y-1">
+          <div class="text-slate-500">// Ready. Hit 'Revive This Project Now' above to run the garage test.</div>
+        </div>
+      </div>
+
+      <!-- Bottom Action Strip -->
+      <div class="px-6 py-4 border-t border-surface-800 bg-surface-900/60 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-4 text-xs font-mono text-slate-400">
+          <span class="flex items-center gap-1 text-emerald-400"><i data-lucide="check" class="w-3.5 h-3.5"></i> Zero CVEs</span>
+          <span class="flex items-center gap-1 text-cyan-400"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> Modern 2026 Engine</span>
+          <span class="flex items-center gap-1 text-slate-300"><i data-lucide="shield" class="w-3.5 h-3.5"></i> 100% Green Run</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="downloadCleanCode()" class="px-3.5 py-1.5 rounded-xl bg-surface-800 hover:bg-surface-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Download Fixed Files</span>
+          </button>
+          <button onclick="openPrModal()" class="px-4 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition">
+            <i data-lucide="git-pull-request" class="w-3.5 h-3.5"></i>
+            <span>Open Automated PR</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- PULL REQUEST POPUP / REVIEW MODAL -->
+  <div id="prModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-panel rounded-3xl max-w-lg w-full flex flex-col shadow-2xl overflow-hidden border border-surface-800">
+      
+      <div class="p-5 border-b border-surface-800 flex items-center justify-between bg-surface-900/60">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center">
+            <i data-lucide="git-pull-request" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-sm text-white">Pull Request #1: Modernize to Python 3.12 LTS</h4>
+            <p class="text-[11px] text-slate-400 font-mono">legacyrevive-bot &rarr; main branch</p>
+          </div>
+        </div>
+        <button onclick="closePrModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs">
+        
+        <div class="p-4 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center shrink-0">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="font-bold text-brand-300 text-sm">Certified Safe to Merge</div>
+            <div class="text-slate-300 mt-0.5">All 3 automated test suites passed inside the isolated test garage.</div>
+          </div>
+        </div>
+
+        <div class="space-y-2 text-slate-300">
+          <div class="text-xs font-semibold text-white uppercase font-mono text-[10px]">What This PR Delivers:</div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="check" class="w-4 h-4 text-brand-400"></i>
+            <span>Upgrades obsolete Python 2 syntax to Python 3.12</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="check" class="w-4 h-4 text-brand-400"></i>
+            <span>Plugs 14 high-risk vulnerabilities by replacing insecure MD5</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="check" class="w-4 h-4 text-brand-400"></i>
+            <span>Creates new automated test suite with 94% test coverage</span>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-surface-800 flex items-center justify-between">
+          <span class="text-slate-400 text-xs">Status: <strong class="text-emerald-400">0 Merge Conflicts</strong></span>
+          <button onclick="mergePR()" id="mergePrBtn" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-brand-500/25">
+            <i data-lucide="git-merge" class="w-4 h-4"></i>
+            <span>Approve & Merge PR</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    // State management
+    let currentMode = 'beginner'; // 'beginner' or 'engineer'
+    let audioMuted = false;
+    let audioContext = null;
+    let isReviving = false;
+    let currentPatient = 'school';
+
+    // Patient Story Data
+    const patients = {
+      school: {
+        title: "📚 School Grading App",
+        repo: "https://github.com/dead-repos/school-grade-evaluator",
+        file: "grade_calculator.py",
+        dormant: "8 Years (2016)",
+        cves: "14 Holes",
+        initHealth: 24,
+        simpleBefore: `- import urllib2          # DEAD: Removed in modern Python\n- import md5              # INSECURE: Can be cracked in 2 secs\n\n- def calculate_grade(name, marks):\n-     print "Calculating report for: " + name   # Crash!\n-     key = md5.new(name).hexdigest()\n-     return {"student": name, "token": key}`,
+        simpleAfter: `+ import hashlib          # SECURE: Modern cryptographic grade\n+ from typing import Dict, Any\n+ import logging\n\n+ def calculate_grade(name: str, marks: float) -> Dict[str, Any]:\n+     logging.info(f"Verified report for: {name}")\n+     token = hashlib.sha256(name.encode("utf-8")).hexdigest()\n+     return {"student": name, "token": token, "verified": True}`,
+        beforeCallout: "⚠️ <strong>Why this was broken:</strong> Used old 2010 Python commands that modern computers refuse to read, and stored sensitive tokens with broken encryption.",
+        afterCallout: "✅ <strong>What got upgraded:</strong> Clean modern syntax, bank-grade SHA256 security hashing, and strict type protections so bugs cannot slip through."
+      },
+      weather: {
+        title: "🌤️ City Weather Tool",
+        repo: "https://github.com/dead-repos/city-weather-scraper",
+        file: "weather_fetcher.py",
+        dormant: "6 Years (2018)",
+        cves: "5 Holes",
+        initHealth: 38,
+        simpleBefore: `- import urllib2\n- import simplejson as json\n\n- def get_city_temp(city):\n-     print "Fetching data for: " + city\n-     req = urllib2.Request("http://api.weather-dead.org/" + city)\n-     response = urllib2.urlopen(req)\n-     return json.loads(response.read())`,
+        simpleAfter: `+ import urllib.request\n+ import urllib.parse\n+ import json\n+ from typing import Dict, Any\n\n+ def get_city_temp(city: str) -> Dict[str, Any]:\n+     safe_city = urllib.parse.quote(city)\n+     url = f"https://api.open-meteo.com/v1/forecast?city={safe_city}"\n+     with urllib.request.urlopen(url, timeout=5) as resp:\n+         return json.loads(resp.read().decode("utf-8"))`,
+        beforeCallout: "⚠️ <strong>Why this was broken:</strong> Used old HTTP connections that don't support modern SSL encryption certificates.",
+        afterCallout: "✅ <strong>What got upgraded:</strong> Safe modern HTTPS requests, modern timeouts to prevent hanging, and clean string parsing."
+      },
+      shop: {
+        title: "🛒 Mini Store Cart",
+        repo: "https://github.com/dead-repos/mini-cart-calculator",
+        file: "cart_service.py",
+        dormant: "7 Years (2017)",
+        cves: "9 Holes",
+        initHealth: 31,
+        simpleBefore: `- import cPickle as pickle  # DANGEROUS: Remote code exploit\n\n- def save_cart(cart_id, items):\n-     print "Saving cart: %s" % cart_id\n-     serialized = pickle.dumps(items)\n-     return serialized`,
+        simpleAfter: `+ import json\n+ from typing import List, Dict, Any\n\n+ def save_cart(cart_id: str, items: List[Dict[str, Any]]) -> str:\n+     # Replaced vulnerable cPickle with safe JSON serialization\n+     return json.dumps({"cart_id": cart_id, "items": items}, indent=2)`,
+        beforeCallout: "⚠️ <strong>Why this was broken:</strong> Stored cart items using `cPickle`, which allows malicious hackers to run arbitrary computer commands.",
+        afterCallout: "✅ <strong>What got upgraded:</strong> Safe, industry-standard JSON format that prevents unauthorized system execution."
+      }
+    };
+
+    // Synthesizer Web Audio for pleasant tones
+    function playChime(freq = 587.33, dur = 0.12) {
+      if (audioMuted) return;
+      try {
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') audioContext.resume();
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+        gain.gain.setValueAtTime(0.05, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start();
+        osc.stop(audioContext.currentTime + dur);
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      audioMuted = !audioMuted;
+      const icon = document.getElementById('audioIcon');
+      if (audioMuted) {
+        icon.setAttribute('data-lucide', 'volume-x');
+        showToast("Sound muted", "info");
+      } else {
+        icon.setAttribute('data-lucide', 'volume-2');
+        showToast("Sound unmuted", "info");
+        playChime(659.25, 0.1);
+      }
+      lucide.createIcons();
+    }
+
+    // Friendly Toast
+    function showToast(msg, type = "success") {
+      const toast = document.getElementById('toast');
+      const isSuccess = type === "success";
+      toast.className = `fixed bottom-6 right-6 z-50 transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border text-sm font-medium ${
+        isSuccess ? "bg-surface-900 border-brand-500/50 text-brand-300" : "bg-surface-900 border-surface-700 text-slate-300"
+      }`;
+      toast.innerHTML = `<i data-lucide="${isSuccess ? 'check-circle' : 'info'}" class="w-4 h-4 ${isSuccess ? 'text-brand-400' : 'text-cyan-400'}"></i><span>${msg}</span>`;
+      lucide.createIcons();
+      toast.classList.remove('translate-y-28', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-28', 'opacity-0'), 2600);
+    }
+
+    // Toggle between Plain English and Developer modes
+    function setMode(mode) {
+      currentMode = mode;
+      const btnBeginner = document.getElementById('modeBtnBeginner');
+      const btnDev = document.getElementById('modeBtnDev');
+
+      if (mode === 'beginner') {
+        btnBeginner.className = "px-2.5 sm:px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition bg-brand-500 text-slate-950 shadow";
+        btnDev.className = "px-2.5 sm:px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-white";
+        
+        // Plain English Text
+        document.getElementById('appSubtitle').innerText = "Reviving dead code into clean, safe modern software";
+        document.getElementById('hospitalBadge').innerText = "Code ICU • Restoration Station";
+        document.getElementById('hospitalTagline').innerText = "Resurrecting broken open-source projects";
+        document.getElementById('heroTitle').innerText = "Bring Old, Dead Projects Back to Life";
+        document.getElementById('heroDesc').innerText = "Millions of great coding tools are abandoned because they stopped running on modern systems. LegacyRevive acts like an automated master mechanic: it tests the old code, replaces worn-out parts, and makes it purr like new!";
+        document.getElementById('healthCardTitle').innerText = "Patient Vitality Score";
+        document.getElementById('healthSubtext').innerText = "(Needs Total Restoration)";
+        document.getElementById('pipelineHeading').innerText = "How We Resurrect Broken Code";
+
+        document.getElementById('step1Title').innerText = "Doctor Checkup";
+        document.getElementById('step1Desc').innerText = "We scan every line of code to spot obsolete 2016 commands, dead links, and insecure locks.";
+
+        document.getElementById('step2Title').innerText = "Surgeon Refactor";
+        document.getElementById('step2Desc').innerText = "Our AI swaps rusty old code with brand-new, modern 2026 code, plugs security holes, and writes automated tests.";
+
+        document.getElementById('step3Title').innerText = "Safe Test Drive";
+        document.getElementById('step3Desc').innerText = "We spin up an isolated virtual testing garage. If every test passes, you get a clean 100% green bill of health!";
+
+        document.getElementById('inspectorTitle').innerText = "What Changed Inside This Code?";
+        document.getElementById('tab1Text').innerText = "Before vs After";
+        document.getElementById('tab2Text').innerText = "Fixes Explained";
+        document.getElementById('tab3Text').innerText = "Auto Tests (3)";
+        document.getElementById('tab4Text').innerText = "Test Garage Log";
+
+        showToast("Switched to Simple Beginner Mode", "info");
+      } else {
+        btnDev.className = "px-2.5 sm:px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition bg-brand-500 text-slate-950 shadow";
+        btnBeginner.className = "px-2.5 sm:px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-white";
+
+        // Developer Text
+        document.getElementById('appSubtitle').innerText = "Autonomous AST Parser, LLM Synthesis & Docker CI Sandbox";
+        document.getElementById('hospitalBadge').innerText = "AST Lexer • Zero CVE Pipeline";
+        document.getElementById('hospitalTagline').innerText = "Deterministic LTS Upgrades";
+        document.getElementById('heroTitle').innerText = "Autonomous Code Modernization Pipeline";
+        document.getElementById('heroDesc').innerText = "Deep Tree-sitter Abstract Syntax Tree parsing coupled with context-aware LLM refactoring. Rewrites deprecated stdlib calls into Python 3.12 LTS strict signatures and validates in containerized CI.";
+        document.getElementById('healthCardTitle').innerText = "Static Code Quality & Security Index";
+        document.getElementById('healthSubtext').innerText = "(High Technical Debt)";
+        document.getElementById('pipelineHeading').innerText = "Multi-Phase Autonomous Architecture";
+
+        document.getElementById('step1Title').innerText = "Tree-sitter AST Parse";
+        document.getElementById('step1Desc').innerText = "Generates syntax trees, isolates deprecated syntax, unpatched CVE modules, and breaks.";
+
+        document.getElementById('step2Title').innerText = "LLM Code Synthesis";
+        document.getElementById('step2Desc').innerText = "Generates typed signatures, modern idiomatic constructs, and robust pytest fixtures.";
+
+        document.getElementById('step3Title').innerText = "Docker CI Sandbox";
+        document.getElementById('step3Desc').innerText = "Executes containerized test run in python:3.12-slim to guarantee 100% green compilation.";
+
+        document.getElementById('inspectorTitle').innerText = "AST Diff & SBOM Inspection";
+        document.getElementById('tab1Text').innerText = "Diff Viewer";
+        document.getElementById('tab2Text').innerText = "CVE Breakdown";
+        document.getElementById('tab3Text').innerText = "Pytest Fixtures";
+        document.getElementById('tab4Text').innerText = "Docker stdout";
+
+        showToast("Switched to Engineer Mode", "info");
+      }
+      playChime(523.25, 0.08);
+      lucide.createIcons();
+    }
+
+    // Pick a patient preset
+    function pickPatient(key) {
+      currentPatient = key;
+      const data = patients[key];
+      if (!data) return;
+
+      // Update inputs
+      document.getElementById('repoInput').value = data.repo;
+      document.getElementById('codeBeforeRaw').innerHTML = data.simpleBefore;
+      document.getElementById('codeAfterRaw').innerHTML = data.simpleAfter;
+      document.getElementById('diffBeforeCallout').innerHTML = data.beforeCallout;
+      document.getElementById('diffAfterCallout').innerHTML = data.afterCallout;
+
+      // Highlight selected preset card
+      ['school', 'weather', 'shop'].forEach(p => {
+        const el = document.getElementById(`preset${p.charAt(0).toUpperCase() + p.slice(1)}`);
+        if (p === key) {
+          el.className = "patient-card text-left p-3.5 rounded-2xl bg-surface-900/90 hover:bg-surface-800 border-2 border-emerald-500/50 transition relative group";
+        } else {
+          el.className = "patient-card text-left p-3.5 rounded-2xl bg-surface-900/90 hover:bg-surface-800 border-2 border-surface-800 transition relative group";
+        }
+      });
+
+      // Reset Vitals to initial broken state
+      resetVitals(data);
+      playChime(440, 0.06);
+      showToast(`Loaded: ${data.title}`, "info");
+    }
+
+    function resetVitals(data) {
+      document.getElementById('healthPercentNumber').innerText = `${data.initHealth}%`;
+      document.getElementById('healthPercentNumber').className = "text-3xl font-black font-mono text-rose-400";
+      document.getElementById('healthConditionLabel').innerText = "Condition: Critical";
+      document.getElementById('healthConditionLabel').className = "text-rose-400";
+      document.getElementById('healthFillBar').style.width = `${data.initHealth}%`;
+      document.getElementById('healthFillBar').className = "bg-gradient-to-r from-rose-500 to-amber-500 h-full rounded-full transition-all duration-700 ease-out";
+      
+      document.getElementById('stat1Value').innerText = data.cves;
+      document.getElementById('stat1Value').className = "text-2xl font-bold text-rose-400";
+      document.getElementById('stat2Value').innerText = "0 Tests";
+      document.getElementById('stat2Value').className = "text-2xl font-bold text-amber-400";
+
+      // Reset pipeline status
+      [1, 2, 3].forEach(i => {
+        document.getElementById(`step${i}Status`).innerText = i === 1 ? "Ready" : "Waiting";
+        document.getElementById(`step${i}Status`).className = "text-slate-400";
+        document.getElementById(`pipeCard${i}`).className = "p-5 rounded-2xl bg-surface-900/60 border border-surface-800 transition-all duration-300";
+      });
+
+      // Terminal reset
+      document.getElementById('terminalBody').innerHTML = '<div class="text-slate-500">// Ready. Hit \'Revive This Project Now\' above to run the garage test.</div>';
+    }
+
+    // View Switching in Inspector
+    function selectView(viewKey) {
+      const views = {
+        sideBySide: 'viewSideBySide',
+        fixes: 'viewFixes',
+        tests: 'viewTests',
+        terminal: 'viewTerminal'
+      };
+      const tabs = {
+        sideBySide: 'tabSimpDiff',
+        fixes: 'tabFixList',
+        tests: 'tabTestView',
+        terminal: 'tabTerminal'
+      };
+
+      Object.keys(views).forEach(k => {
+        document.getElementById(views[k]).classList.add('hidden');
+        document.getElementById(tabs[k]).className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition";
+      });
+
+      document.getElementById(views[viewKey]).classList.remove('hidden');
+      document.getElementById(tabs[viewKey]).className = "px-3 py-1.5 rounded-lg bg-surface-800 text-brand-400 font-bold transition";
+      playChime(620, 0.04);
+      lucide.createIcons();
+    }
+
+    function appendTerminal(msg, color = "text-slate-300") {
+      const body = document.getElementById('terminalBody');
+      const time = new Date().toTimeString().split(' ')[0];
+      const row = document.createElement('div');
+      row.className = color;
+      row.innerHTML = `<span class="text-slate-600">[${time}]</span> ${msg}`;
+      body.appendChild(row);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    const wait = ms => new Promise(res => setTimeout(res, ms));
+
+    // Full 3-Phase Interactive Restoration Process
+    async function startRestoration() {
+      if (isReviving) return;
+      isReviving = true;
+
+      const btn = document.getElementById('reviveButton');
+      const btnText = document.getElementById('reviveBtnText');
+      btn.disabled = true;
+      btn.classList.add('opacity-60');
+      btnText.innerText = "Reviving Project...";
+
+      // Reset steps
+      [1, 2, 3].forEach(i => {
+        document.getElementById(`step${i}Status`).innerText = "Working...";
+        document.getElementById(`step${i}Status`).className = "text-slate-400";
+        document.getElementById(`pipeCard${i}`).className = "p-5 rounded-2xl bg-surface-900/60 border border-surface-800";
+      });
+
+      appendTerminal("🚀 Intake started: Initializing isolated workspace...", "text-brand-400 font-bold");
+      playChime(440, 0.08);
+
+      // Phase 1: Doctor Checkup
+      document.getElementById('pipeCard1').className = "p-5 rounded-2xl bg-surface-900 border-2 border-brand-500 shadow-lg shadow-brand-500/10";
+      document.getElementById('step1Status').innerText = "Scanning code...";
+      document.getElementById('step1Status').className = "text-brand-400 font-bold";
+      await wait(600);
+      appendTerminal("🔍 Step 1 Checkup: Located 14 deprecated statements & obsolete MD5 hashing.", "text-amber-300");
+      document.getElementById('step1Status').innerText = "Checkup Complete";
+      document.getElementById('step1Status').className = "text-emerald-400 font-bold";
+      playChime(554.37, 0.08);
+
+      // Jump Health to 55%
+      document.getElementById('healthPercentNumber').innerText = "55%";
+      document.getElementById('healthFillBar').style.width = "55%";
+
+      // Phase 2: Surgeon Refactor
+      document.getElementById('pipeCard1').className = "p-5 rounded-2xl bg-surface-900/60 border border-surface-800";
+      document.getElementById('pipeCard2').className = "p-5 rounded-2xl bg-surface-900 border-2 border-cyan-400 shadow-lg shadow-cyan-400/10";
+      document.getElementById('step2Status').innerText = "Refactoring...";
+      document.getElementById('step2Status').className = "text-cyan-400 font-bold";
+      await wait(700);
+      appendTerminal("⚡ Step 2 Refactor: Upgraded to Python 3.12 syntax with strict type annotations.", "text-cyan-300");
+      appendTerminal("⚡ Step 2 Refactor: Auto-generated 3 Pytest scenario fixtures.", "text-cyan-300");
+      document.getElementById('step2Status').innerText = "Code Modernized";
+      document.getElementById('step2Status').className = "text-emerald-400 font-bold";
+      playChime(659.25, 0.08);
+
+      // Jump Health to 82%
+      document.getElementById('healthPercentNumber').innerText = "82%";
+      document.getElementById('healthFillBar').style.width = "82%";
+
+      // Phase 3: Safe Test Drive
+      document.getElementById('pipeCard2').className = "p-5 rounded-2xl bg-surface-900/60 border border-surface-800";
+      document.getElementById('pipeCard3').className = "p-5 rounded-2xl bg-surface-900 border-2 border-brand-500 shadow-lg shadow-brand-500/10";
+      document.getElementById('step3Status').innerText = "Running Test Garage...";
+      document.getElementById('step3Status').className = "text-brand-400 font-bold";
+      await wait(500);
+      appendTerminal("🧪 Starting pytest suite in python:3.12 container...", "text-slate-300");
+      await wait(400);
+      appendTerminal("test_student_report_success ................... [PASS]", "text-emerald-400 font-semibold");
+      playChime(700, 0.05);
+      await wait(300);
+      appendTerminal("test_empty_student_handling ................... [PASS]", "text-emerald-400 font-semibold");
+      playChime(750, 0.05);
+      await wait(300);
+      appendTerminal("test_security_hash_tamper_proofing ............ [PASS]", "text-emerald-400 font-semibold");
+      playChime(880, 0.12);
+
+      document.getElementById('step3Status').innerText = "100% Green Run";
+      document.getElementById('step3Status').className = "text-emerald-400 font-bold";
+
+      // Perfect 100% Health Score Animation!
+      document.getElementById('healthPercentNumber').innerText = "100%";
+      document.getElementById('healthPercentNumber').className = "text-3xl font-black font-mono text-emerald-400";
+      document.getElementById('healthConditionLabel').innerText = "Condition: Healthy";
+      document.getElementById('healthConditionLabel').className = "text-emerald-400";
+      document.getElementById('healthSubtext').innerText = "(Production Certified)";
+      document.getElementById('healthFillBar').style.width = "100%";
+      document.getElementById('healthFillBar').className = "bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all duration-700 ease-out";
+
+      // Vitals updated
+      document.getElementById('stat1Value').innerText = "0 Holes";
+      document.getElementById('stat1Value').className = "text-2xl font-bold text-emerald-400";
+      document.getElementById('stat2Value').innerText = "3 Passing";
+      document.getElementById('stat2Value').className = "text-2xl font-bold text-emerald-400";
+
+      // Re-enable button
+      btn.disabled = false;
+      btn.classList.remove('opacity-60');
+      btnText.innerText = "Revive Again";
+      isReviving = false;
+
+      // Confetti burst for non-tech celebration
+      confetti({
+        particleCount: 75,
+        spread: 65,
+        origin: { y: 0.7 },
+        colors: ['#10b981', '#34d399', '#38bdf8', '#fbbf24']
+      });
+
+      showToast("Project successfully revived! 100% Green.", "success");
+      await wait(800);
+      openPrModal();
+    }
+
+    // Modal controls
+    function openPrModal() {
+      document.getElementById('prModal').classList.remove('hidden');
+      playChime(587.33, 0.08);
+      lucide.createIcons();
+    }
+
+    function closePrModal() {
+      document.getElementById('prModal').classList.add('hidden');
+    }
+
+    function mergePR() {
+      const btn = document.getElementById('mergePrBtn');
+      btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>Merged Into Main!</span>`;
+      btn.className = "px-5 py-2.5 bg-purple-600 text-white font-bold rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-purple-600/30";
+      lucide.createIcons();
+      playChime(987.77, 0.16);
+      showToast("Pull request successfully merged!", "success");
+      setTimeout(() => closePrModal(), 1200);
+    }
+
+    // Clipboard copy
+    function copyCleanCode() {
+      const code = document.getElementById('codeAfterRaw').innerText;
+      const el = document.createElement('textarea');
+      el.value = code;
+      document.body.appendChild(el);
+      el.select();
+      try {
+        document.execCommand('copy');
+        document.getElementById('copyBtnTxt').innerText = "Copied!";
+        playChime(783.99, 0.06);
+        showToast("Modern code copied to clipboard", "success");
+        setTimeout(() => document.getElementById('copyBtnTxt').innerText = "Copy Code", 2000);
+      } catch (err) {}
+      document.body.removeChild(el);
+    }
+
+    // Download mock file
+    function downloadCleanCode() {
+      const code = document.getElementById('codeAfterRaw').innerText;
+      const blob = new Blob([code], { type: 'text/x-python' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = patients[currentPatient].file;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      playChime(698.46, 0.08);
+      showToast(`Downloaded ${patients[currentPatient].file}`, "success");
+    }
+
+    // Initialize icons on load
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
